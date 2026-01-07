@@ -1,9 +1,9 @@
-import * as vscode from 'vscode';
 import { randomBytes } from 'node:crypto';
+import * as vscode from 'vscode';
 import {
+  GatewayConfig,
   OpenAIChatCompletionRequest,
-  OpenAIModelsResponse,
-  GatewayConfig
+  OpenAIModelsResponse
 } from './types';
 
 /**
@@ -37,9 +37,9 @@ interface ParsedChunk {
     tool_calls?: Array<{
       index?: number;
       id?: string;
-      function?: { name?: string; arguments?: string };
+      function?: { name?: string; arguments?: string; };
     }>;
-    function_call?: { name?: string; arguments?: string };
+    function_call?: { name?: string; arguments?: string; };
   };
   message?: {
     content?: string;
@@ -47,9 +47,9 @@ interface ParsedChunk {
     tool_calls?: Array<{
       index?: number;
       id?: string;
-      function?: { name?: string; arguments?: string };
+      function?: { name?: string; arguments?: string; };
     }>;
-    function_call?: { name?: string; arguments?: string };
+    function_call?: { name?: string; arguments?: string; };
   };
   finishReason?: string;
   id?: string;
@@ -106,6 +106,10 @@ export class GatewayClient {
       finalizedIndices: new Set<number>(),
       requestId: `req_${Date.now()}_${randomBytes(4).toString('hex')}`,
       toolCallCounter: 0,
+      handleSSEError: (error: Error) => {
+        // Log or handle SSE errors if needed
+        console.error('SSE Error:', error);
+      },
     };
   }
 
@@ -113,7 +117,7 @@ export class GatewayClient {
    * Process a single streamed tool call delta
    */
   private processToolCallDelta(
-    tc: { index?: number; id?: string; function?: { name?: string; arguments?: string } },
+    tc: { index?: number; id?: string; function?: { name?: string; arguments?: string; }; },
     state: ToolCallState
   ): void {
     const index = tc.index ?? state.toolCallCounter++;
@@ -136,7 +140,7 @@ export class GatewayClient {
    * Process legacy function_call format
    */
   private processLegacyFunctionCall(
-    functionCall: { name?: string; arguments?: string },
+    functionCall: { name?: string; arguments?: string; },
     parsedId: string,
     state: ToolCallState
   ): void {
@@ -180,7 +184,7 @@ export class GatewayClient {
   private processDeltaFormat(
     parsed: ParsedChunk,
     state: ToolCallState
-  ): { content: string; finishedToolCalls: StreamingToolCall[] } {
+  ): { content: string; finishedToolCalls: StreamingToolCall[]; } {
     const delta = parsed.delta!;
     const finishedToolCalls: StreamingToolCall[] = [];
 
@@ -210,7 +214,7 @@ export class GatewayClient {
   private processMessageFormat(
     parsed: ParsedChunk,
     state: ToolCallState
-  ): { content: string; finishedToolCalls: StreamingToolCall[] } {
+  ): { content: string; finishedToolCalls: StreamingToolCall[]; } {
     const message = parsed.message!;
     const finishedToolCalls: StreamingToolCall[] = [];
 
@@ -267,7 +271,7 @@ export class GatewayClient {
   private processSSELine(
     line: string,
     state: ToolCallState
-  ): { content: string; tool_calls: StreamingToolCall[]; finished_tool_calls: StreamingToolCall[] } | null {
+  ): { content: string; tool_calls: StreamingToolCall[]; finished_tool_calls: StreamingToolCall[]; } | null {
     const trimmed = line.trim();
 
     if (trimmed === '' || trimmed === 'data: [DONE]') {
@@ -324,7 +328,7 @@ export class GatewayClient {
   public async *streamChatCompletion(
     request: OpenAIChatCompletionRequest,
     cancellationToken: vscode.CancellationToken
-  ): AsyncGenerator<{ content: string; tool_calls: StreamingToolCall[]; finished_tool_calls: StreamingToolCall[] }, void, unknown> {
+  ): AsyncGenerator<{ content: string; tool_calls: StreamingToolCall[]; finished_tool_calls: StreamingToolCall[]; }, void, unknown> {
     const url = `${this.config.serverUrl}/v1/chat/completions`;
     const state = this.createToolCallState();
 

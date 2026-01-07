@@ -47,7 +47,7 @@
     "languageModelChatProviders": [
       {
         "vendor": "copilot-llm-gateway",
-        "displayName": "LLM Gateway"
+        "displayName": "iflow"
       }
     ],
     "commands": [
@@ -62,8 +62,8 @@
       "properties": {
         "github.copilot.llm-gateway.serverUrl": {
           "type": "string",
-          "default": "http://localhost:8000",
-          "description": "Inference server URL (OpenAI API compatible endpoint)",
+          "default": "https://apis.iflow.cn/v1",
+          "description": "Inference server URL (OpenAI API compatible endpoint). For iflow.cn, use https://apis.iflow.cn/v1",
           "order": 1
         },
         "github.copilot.llm-gateway.apiKey": {

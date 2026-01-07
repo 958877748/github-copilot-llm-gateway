@@ -22,13 +22,15 @@ This extension connects to any **OpenAI-compatible inference server**, giving yo
 
 ### Key Benefits
 
-| Benefit                | Description                                                                      |
-| ---------------------- | -------------------------------------------------------------------------------- |
-| **Data Sovereignty**   | Your code never leaves your network. All inference happens on your own hardware. |
-| **Zero API Costs**     | No per-token fees. Use your GPU resources without usage limits.                  |
-| **Model Choice**       | Access thousands of open-source models from Hugging Face and beyond.             |
-| **Offline Capable**    | Work without internet once models are downloaded.                                |
-| **Full Customization** | Fine-tune models for your specific codebase or domain.                           |
+| Benefit                | Description                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------------- |
+| **Data Sovereignty**   | Your code never leaves your network. All inference happens on your own hardware.       |
+| **Zero API Costs**     | No per-token fees. Use your GPU resources without usage limits.                        |
+| **Model Choice**       | Access thousands of open-source models from Hugging Face and beyond.                   |
+| **Offline Capable**    | Work without internet once models are downloaded.                                      |
+| **Full Customization** | Fine-tune models for your specific codebase or domain.                                 |
+| **Smart Token Limits** | Automatically uses correct context windows for known models (e.g., Qwen3-Max: 256K).   |
+| **Vision Support**     | Supports vision-enabled models like Qwen3-VL-Plus and GLM-4.6 for image understanding. |
 
 ### Compatible Inference Servers
 
@@ -37,6 +39,7 @@ This extension connects to any **OpenAI-compatible inference server**, giving yo
 - [llama.cpp](https://github.com/ggml-org/llama.cpp) — CPU and GPU inference
 - [Text Generation Inference](https://github.com/huggingface/text-generation-inference) — Hugging Face's server
 - [LocalAI](https://localai.io/) — OpenAI API drop-in replacement
+- [iflow.cn](https://platform.iflow.cn/models) — Cloud-hosted models (Qwen, GLM, DeepSeek, Kimi, etc.)
 - Any OpenAI Chat Completions API-compatible endpoint
 
 ## Getting Started
@@ -53,7 +56,11 @@ Install **GitHub Copilot LLM Gateway** from the VS Code Marketplace.
 
 <!-- Screenshot: Extension in marketplace -->
 
-### Step 2: Start Your Inference Server
+### Step 2: Choose Your Inference Server
+
+You can use either a local server or a cloud-hosted service like iflow.cn (Zhipu AI).
+
+#### Option A: Local Server (e.g., vLLM)
 
 Launch your inference server with tool calling enabled. Here's an example using vLLM:
 
@@ -73,12 +80,20 @@ Verify the server is running:
 curl http://localhost:42069/v1/models
 ```
 
+#### Option B: Cloud Server (e.g., iflow.cn / Zhipu AI)
+
+For cloud-hosted models like those from Zhipu AI's iflow.cn platform:
+
+1. Sign up at [iflow.cn](https://platform.iflow.cn/models) and get your API key.
+2. The extension is pre-configured for Zhipu AI's OpenAI-compatible API.
+
 ### Step 3: Configure the Extension
 
 1. Open VS Code **Settings** (`Ctrl+,` / `Cmd+,`)
 2. Search for **"Copilot LLM Gateway"**
-3. Set **Server URL** to your inference server address (e.g., `http://localhost:8000`)
-4. Configure other settings as needed (token limits, tool calling, etc.)
+3. Set **Server URL** to your inference server address (e.g., `http://localhost:8000` for local, or `https://apis.iflow.cn/v1` for iflow.cn)
+4. Set **API Key** to your authentication key (required for cloud services like iflow.cn)
+5. Configure other settings as needed (token limits are automatically set for known models, but you can override with these defaults):
 
 ![Extension settings panel showing all configuration options](assets/screenshot-settings.png)
 
@@ -92,9 +107,9 @@ curl http://localhost:42069/v1/models
 2. Click the **model selector** dropdown at the bottom of the chat panel
 3. Click **"Manage Models..."** to open the model manager
 
-![Model manager showing LLM Gateway alongside other providers](assets/screenshot-manage-language-model.png)
+![Model manager showing iflow alongside other providers](assets/screenshot-manage-language-model.png)
 
-4. Select **"LLM Gateway"** from the provider list
+4. Select **"iflow"** from the provider list
 5. Enable the models you want to use from your inference server
 
 ![Selecting Qwen3-8B from the model list](assets/screenshot-use-qwen3.png)
@@ -106,6 +121,7 @@ Your self-hosted models now appear alongside the default Copilot models. Select 
 ![Copilot Chat using Qwen3-8B with full agentic capabilities](assets/screenshot-chat.png)
 
 The model integrates seamlessly with Copilot's features including:
+
 - **Agent mode** for autonomous coding tasks
 - **Tool calling** for file operations, terminal commands, and more
 - **Context awareness** with `@workspace` and file references

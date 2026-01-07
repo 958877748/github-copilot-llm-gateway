@@ -42,6 +42,68 @@ export class GatewayProvider implements vscode.LanguageModelChatProvider {
     }
     return 'user';
   }
+  private getModelLimits(modelId: string): { maxInputTokens: number; maxOutputTokens: number; } {
+    const modelLimits: Record<string, { maxInputTokens: number; maxOutputTokens: number; }> = {
+      'tstars2.0': { maxInputTokens: 131072, maxOutputTokens: 65536 }, // 128K, 64K
+      'qwen3-coder-plus': { maxInputTokens: 1048576, maxOutputTokens: 65536 }, // 1M, 64K
+      'qwen3-max': { maxInputTokens: 262144, maxOutputTokens: 32768 }, // 256K, 32K
+      'qwen3-vl-plus': { maxInputTokens: 262144, maxOutputTokens: 32768 }, // 256K, 32K
+      'qwen3-max-preview': { maxInputTokens: 262144, maxOutputTokens: 32768 }, // 256K, 32K
+      'kimi-k2-0905': { maxInputTokens: 262144, maxOutputTokens: 65536 }, // 256K, 64K
+      'glm-4.6': { maxInputTokens: 204800, maxOutputTokens: 131072 }, // 200K, 128K
+      'kimi-k2': { maxInputTokens: 131072, maxOutputTokens: 65536 }, // 128K, 64K
+      'deepseek-v3.2': { maxInputTokens: 131072, maxOutputTokens: 65536 }, // 128K, 64K
+      'deepseek-r1': { maxInputTokens: 131072, maxOutputTokens: 32768 }, // 128K, 32K
+      'deepseek-v3': { maxInputTokens: 131072, maxOutputTokens: 32768 }, // 128K, 32K
+      'qwen3-32b': { maxInputTokens: 131072, maxOutputTokens: 32768 }, // 128K, 32K
+      'qwen3-235b-a22b-thinking-2507': { maxInputTokens: 262144, maxOutputTokens: 65536 }, // 256K, 64K
+      'qwen3-235b-a22b-instruct': { maxInputTokens: 262144, maxOutputTokens: 65536 }, // 256K, 64K
+      'qwen3-235b': { maxInputTokens: 131072, maxOutputTokens: 32768 }, // 128K, 32K
+    };
+
+    return modelLimits[modelId] || {
+      maxInputTokens: this.config.defaultMaxTokens,
+      maxOutputTokens: this.config.defaultMaxOutputTokens,
+    };
+  }
+
+  /**
+   * Get model information including limits and capabilities
+   */
+  private getModelInfo(modelId: string): { maxInputTokens: number; maxOutputTokens: number; capabilities: { toolCalling: boolean; vision: boolean; }; } {
+    const modelInfos: Record<string, { maxInputTokens: number; maxOutputTokens: number; vision: boolean; }> = {
+      'tstars2.0': { maxInputTokens: 131072, maxOutputTokens: 65536, vision: false },
+      'qwen3-coder-plus': { maxInputTokens: 1048576, maxOutputTokens: 65536, vision: false },
+      'qwen3-max': { maxInputTokens: 262144, maxOutputTokens: 32768, vision: false },
+      'qwen3-vl-plus': { maxInputTokens: 262144, maxOutputTokens: 32768, vision: true }, // 支持视觉
+      'qwen3-max-preview': { maxInputTokens: 262144, maxOutputTokens: 32768, vision: false },
+      'kimi-k2-0905': { maxInputTokens: 262144, maxOutputTokens: 65536, vision: false },
+      'glm-4.6': { maxInputTokens: 204800, maxOutputTokens: 131072, vision: false }, // GLM-4.6 支持视觉
+      'kimi-k2': { maxInputTokens: 131072, maxOutputTokens: 65536, vision: false },
+      'deepseek-v3.2': { maxInputTokens: 131072, maxOutputTokens: 65536, vision: false },
+      'deepseek-r1': { maxInputTokens: 131072, maxOutputTokens: 32768, vision: false },
+      'deepseek-v3': { maxInputTokens: 131072, maxOutputTokens: 32768, vision: false },
+      'qwen3-32b': { maxInputTokens: 131072, maxOutputTokens: 32768, vision: false },
+      'qwen3-235b-a22b-thinking-2507': { maxInputTokens: 262144, maxOutputTokens: 65536, vision: false },
+      'qwen3-235b-a22b-instruct': { maxInputTokens: 262144, maxOutputTokens: 65536, vision: false },
+      'qwen3-235b': { maxInputTokens: 131072, maxOutputTokens: 32768, vision: false },
+    };
+
+    const info = modelInfos[modelId] || {
+      maxInputTokens: this.config.defaultMaxTokens,
+      maxOutputTokens: this.config.defaultMaxOutputTokens,
+      vision: false,
+    };
+
+    return {
+      maxInputTokens: info.maxInputTokens,
+      maxOutputTokens: info.maxOutputTokens,
+      capabilities: {
+        toolCalling: this.config.enableToolCalling,
+        vision: info.vision,
+      },
+    };
+  }
 
   /**
    * Convert a tool result part to OpenAI format
@@ -424,16 +486,15 @@ export class GatewayProvider implements vscode.LanguageModelChatProvider {
       const response = await this.client.fetchModels();
 
       const models = response.data.map((model) => {
+        const info = this.getModelInfo(model.id);
         const modelInfo: vscode.LanguageModelChatInformation = {
           id: model.id,
           name: model.id,
           family: 'llm-gateway',
-          maxInputTokens: this.config.defaultMaxTokens,
-          maxOutputTokens: this.config.defaultMaxOutputTokens,
+          maxInputTokens: info.maxInputTokens,
+          maxOutputTokens: info.maxOutputTokens,
           version: '1.0.0',
-          capabilities: {
-            toolCalling: this.config.enableToolCalling
-          },
+          capabilities: info.capabilities,
         };
 
         return modelInfo;
@@ -567,7 +628,7 @@ export class GatewayProvider implements vscode.LanguageModelChatProvider {
    * Process a single tool call from the stream
    */
   private processToolCall(
-    toolCall: { id: string; name: string; arguments: string },
+    toolCall: { id: string; name: string; arguments: string; },
     progress: vscode.Progress<vscode.LanguageModelResponsePart>
   ): void {
     this.outputChannel.appendLine(`\n=== TOOL CALL RECEIVED ===`);
@@ -819,7 +880,7 @@ export class GatewayProvider implements vscode.LanguageModelChatProvider {
     vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: `LLM Gateway: ${modelId}  —  [Settings](command:workbench.action.openSettings?%22github.copilot.llm-gateway%22)`,
+        title: `iflow: ${modelId}  —  [Settings](command:workbench.action.openSettings?%22github.copilot.llm-gateway%22)`,
         cancellable: false,
       },
       () => new Promise((resolve) => setTimeout(resolve, 3000))
